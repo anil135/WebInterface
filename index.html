@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CCTV Archive — Secure Video Retrieval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+
+/* ═══════════════════════════ DESIGN TOKENS */
+:root {
+  --ink:        #050608;
+  --ink2:       #0a0c12;
+  --ink3:       #0f1219;
+  --panel:      #131720;
+  --panel2:     #181e2c;
+  --panel3:     #1e2535;
+  --line:       #232d42;
+  --line2:      #2a3650;
+  --line3:      #334060;
+  --accent:     #3d7fff;
+  --accent2:    #2563eb;
+  --accent3:    #60a5fa;
+  --accent4:    #93c5fd;
+  --teal:       #0891b2;
+  --green:      #059669;
+  --green2:     #10b981;
+  --amber:      #d97706;
+  --amber2:     #f59e0b;
+  --red:        #dc2626;
+  --red2:       #ef4444;
+  --tx0:        #f8faff;
+  --tx1:        #c9d4ec;
+  --tx2:        #6b7fa0;
+  --tx3:        #374560;
+  --r:          8px;
+  --rL:         12px;
+  --rXL:        16px;
+}
+
+/* ═══════════════════════════ RESET */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--ink);
+  color: var(--tx1);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
+
+/* ═══════════════════════════ LAYOUT */
+.shell { display: flex; flex-direction: column; height: 100vh; }
+
+/* ═══════════════════════════ TOP NAV */
+.topnav {
+  height: 54px;
+  background: var(--ink2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 14px;
+  flex-shrink: 0;
+  z-index: 100;
+  position: relative;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.nav-logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent2), var(--teal));
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 18px rgba(37,99,235,.35);
+}
+.nav-logo-icon svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-brand { font-size: 15px; font-weight: 700; letter-spacing: -.3px; color: var(--tx0); }
+.nav-brand span { color: var(--accent3); }
+.nav-divider { width: 1px; height: 22px; background: var(--line2); }
+.nav-sub { font-size: 11px; color: var(--tx2); font-family: 'JetBrains Mono', monospace; }
+.nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav-pill {
+  font-size: 10px; padding: 3px 10px; border-radius: 20px;
+  border: 1px solid var(--line2); background: var(--panel);
+  color: var(--tx2); font-family: 'JetBrains Mono', monospace;
+  display: flex; align-items: center; gap: 5px;
+}
+.nav-pill.live { border-color: rgba(5,150,105,.35); color: var(--green2); }
+.nav-pill.live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green2); box-shadow: 0 0 6px var(--green2); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ═══════════════════════════ MAIN BODY */
+.body { display: flex; flex: 1; overflow: hidden; }
+
+/* ═══════════════════════════ LEFT SIDEBAR — CONTROLS */
+.sidebar {
+  width: 310px;
+  flex-shrink: 0;
+  background: var(--ink2);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-section { border-bottom: 1px solid var(--line); }
+.sb-head {
+  padding: 12px 16px;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sb-title {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--tx2);
+  display: flex; align-items: center; gap: 7px;
+}
+.sb-title-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.sb-body { padding: 14px 16px; }
+
+/* Form controls */
+.field { margin-bottom: 13px; }
+.field:last-child { margin-bottom: 0; }
+.label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: var(--tx3); margin-bottom: 5px;
+  display: flex; align-items: center; gap: 5px;
+}
+.label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+.sel, .inp {
+  width: 100%;
+  background: var(--panel3);
+  border: 1px solid var(--line2);
+  border-radius: var(--r);
+  padding: 9px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--tx0);
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.sel { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7fa0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; padding-right: 28px; }
+.sel:focus, .inp:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(37,99,235,.14); }
+.sel option { background: var(--panel2); }
+.inp::placeholder { color: var(--tx3); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row3 { display: grid; grid-template-columns: 1fr 18px 1fr; gap: 5px; align-items: center; }
+.row-sep { color: var(--tx3); text-align: center; font-size: 11px; }
+
+/* Hour tiles */
+.hour-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  margin-top: 7px;
+}
+.hc {
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--panel3);
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--tx3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+  user-select: none;
+}
+.hc:hover { border-color: var(--line3); color: var(--tx2); }
+.hc.in-range { background: rgba(37,99,235,.1); border-color: rgba(37,99,235,.3); color: var(--accent3); }
+.hc.cap { background: rgba(37,99,235,.22); border-color: var(--accent2); color: var(--tx0); font-weight: 600; }
+
+/* Fetch button */
+.fetch-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--r);
+  border: none;
+  background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(37,99,235,.3);
+  position: relative;
+  overflow: hidden;
+}
+.fetch-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.08), transparent); opacity: 0; transition: opacity .18s; }
+.fetch-btn:hover::before { opacity: 1; }
+.fetch-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(37,99,235,.4); }
+.fetch-btn:active { transform: translateY(0); }
+.fetch-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.fetch-btn svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+
+/* Query preview */
+.q-preview {
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--tx2);
+  line-height: 1.8;
+  word-break: break-all;
+}
+.q-preview .ql { color: var(--accent3); }
+.q-preview .qc { color: var(--teal); }
+.q-preview .qd { color: #a78bfa; }
+.q-preview .qt { color: var(--amber2); }
+.q-preview .qi { color: var(--tx3); font-style: italic; }
+
+/* Result summary */
+.result-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(5,150,105,.07);
+  border: 1px solid rgba(5,150,105,.2);
+  border-radius: var(--r);
+  font-size: 11px;
+  color: var(--green2);
+  margin-bottom: 12px;
+}
+.result-bar.show { display: flex; }
+
+/* ═══════════════════════════ MAIN CONTENT AREA */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ink3);
+}
+
+/* Toolbar */
+.toolbar {
+  height: 50px;
+  background: var(--ink2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+.tbtn {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 7px;
+  border: 1px solid var(--line2);
+  background: var(--panel);
+  color: var(--tx2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+.tbtn:hover { border-color: var(--line3); color: var(--tx1); }
+.tbtn.on { background: rgba(37,99,235,.12); border-color: rgba(37,99,235,.35); color: var(--accent3); }
+.tbtn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+.view-toggle { display: flex; background: var(--panel3); border: 1px solid var(--line2); border-radius: 7px; padding: 2px; }
+.vt { width: 30px; height: 26px; border-radius: 5px; border: none; background: transparent; color: var(--tx3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; font-size: 14px; }
+.vt.on { background: var(--panel); color: var(--accent3); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+
+.search-wrap { position: relative; }
+.search-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--tx3); font-size: 12px; pointer-events: none; }
+.search-inp {
+  height: 32px;
+  width: 200px;
+  background: var(--panel3);
+  border: 1px solid var(--line2);
+  border-radius: 7px;
+  padding: 0 10px 0 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--tx0);
+  outline: none;
+}
+.search-inp:focus { border-color: var(--accent2); }
+
+/* Stats bar */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: var(--r);
+  padding: 10px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.stat::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.stat:nth-child(1)::after { background: linear-gradient(90deg, var(--accent2), var(--teal)); }
+.stat:nth-child(2)::after { background: linear-gradient(90deg, var(--green), var(--teal)); }
+.stat:nth-child(3)::after { background: linear-gradient(90deg, var(--amber), var(--amber2)); }
+.stat:nth-child(4)::after { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+.stat-l { font-size: 10px; color: var(--tx3); margin-bottom: 4px; }
+.stat-v { font-size: 20px; font-weight: 700; color: var(--tx0); line-height: 1; }
+.stat-s { font-size: 10px; color: var(--tx3); margin-top: 2px; }
+
+/* ═══════════════════════════ VIDEO GRID */
+.videos-wrap { flex: 1; overflow-y: auto; padding: 16px 18px; }
+
+.empty-state { padding: 60px 20px; text-align: center; color: var(--tx3); }
+.empty-ico { font-size: 52px; margin-bottom: 16px; opacity: .25; }
+.empty-ttl { font-size: 16px; font-weight: 600; color: var(--tx2); margin-bottom: 8px; }
+.empty-desc { font-size: 12px; line-height: 1.7; }
+
+.loading-state { display: none; padding: 60px 20px; text-align: center; }
+.loading-state.show { display: block; }
+.ls-spin { width: 36px; height: 36px; border: 2px solid var(--line2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ls-txt { font-size: 13px; color: var(--tx2); margin-bottom: 4px; }
+.ls-sub { font-size: 11px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; }
+.ls-pb { width: 200px; height: 3px; background: var(--line2); border-radius: 2px; margin: 12px auto 0; overflow: hidden; }
+.ls-pf { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--teal)); border-radius: 2px; width: 0%; transition: width .2s; }
+
+/* Grid view */
+.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+
+/* List view */
+.list-view { display: flex; flex-direction: column; gap: 4px; }
+.list-hdr {
+  display: grid;
+  grid-template-columns: 40px 1fr 110px 90px 80px 80px 110px;
+  padding: 0 12px; margin-bottom: 4px;
+  font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: var(--tx3);
+}
+
+/* Video card */
+.vcard {
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: var(--rL);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .18s;
+  animation: cardIn .22s ease forwards;
+  opacity: 0;
+}
+@keyframes cardIn { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.vcard:hover { border-color: rgba(37,99,235,.4); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.vcard.selected { border-color: var(--accent2); box-shadow: 0 0 0 2px rgba(37,99,235,.2); }
+
+.vcard-thumb {
+  width: 100%; height: 130px;
+  background: var(--panel3);
+  position: relative;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.vcard-thumb-bg { font-size: 36px; opacity: .12; }
+.vcard-play {
+  position: absolute;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(37,99,235,.85);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+.vcard:hover .vcard-play { background: var(--accent2); transform: scale(1.08); }
+.vcard-play svg { width: 18px; height: 18px; fill: #fff; margin-left: 2px; }
+.vcard-dur {
+  position: absolute; bottom: 8px; right: 8px;
+  background: rgba(0,0,0,.75);
+  color: #fff; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; padding: 2px 6px; border-radius: 4px;
+}
+.vcard-sel {
+  position: absolute; top: 8px; left: 8px;
+  width: 17px; height: 17px;
+  accent-color: var(--accent2);
+  cursor: pointer;
+}
+.vcard-hour-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,.7);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--tx0);
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  padding: 2px 7px; border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+.vcard-body { padding: 10px 12px; }
+.vcard-name { font-size: 12px; font-weight: 600; color: var(--tx0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.vcard-meta { font-size: 10px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; }
+.vcard-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  display: flex; gap: 5px;
+}
+.vcf-btn {
+  flex: 1; padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  background: var(--panel2);
+  color: var(--tx2);
+  font-size: 10px; font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.vcf-btn:hover { border-color: var(--accent2); color: var(--accent3); }
+.vcf-btn.primary { background: rgba(37,99,235,.12); border-color: rgba(37,99,235,.3); color: var(--accent3); }
+
+/* List row */
+.lrow {
+  display: grid;
+  grid-template-columns: 40px 1fr 110px 90px 80px 80px 110px;
+  align-items: center;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: all .15s;
+  animation: cardIn .18s ease forwards;
+  opacity: 0;
+}
+.lrow:hover { background: var(--panel2); border-color: rgba(37,99,235,.3); }
+.lrow.selected { background: rgba(37,99,235,.05); border-color: rgba(37,99,235,.35); }
+.lr-ico { font-size: 16px; }
+.lr-name { font-size: 12px; color: var(--tx0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+.lr-loc { font-size: 10px; color: var(--tx2); }
+.lr-cam { font-size: 10px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; }
+.lr-size { font-size: 10px; color: var(--tx2); font-family: 'JetBrains Mono', monospace; }
+.lr-dur { font-size: 10px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; }
+.lr-acts { display: flex; gap: 4px; }
+.la { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line2); background: transparent; color: var(--tx2); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.la:hover { border-color: var(--accent2); color: var(--accent3); }
+
+/* ═══════════════════════════ SELECTION BAR */
+.sel-bar {
+  display: none;
+  position: sticky; bottom: 0;
+  background: rgba(10,12,18,.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line2);
+  padding: 12px 18px;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.sel-bar.show { display: flex; }
+.sel-cnt { color: var(--accent3); font-weight: 700; font-size: 14px; }
+.sel-info { color: var(--tx2); font-size: 12px; }
+.sel-acts { display: flex; gap: 8px; margin-left: auto; }
+.sab {
+  height: 34px; padding: 0 14px;
+  border-radius: 7px;
+  border: 1px solid var(--line2);
+  background: var(--panel);
+  color: var(--tx2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.sab:hover { border-color: var(--accent2); color: var(--accent3); }
+.sab.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+.sab.primary:hover { background: var(--accent); }
+
+/* ═══════════════════════════ VIDEO PLAYER MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.88);
+  backdrop-filter: blur(18px);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: var(--rXL);
+  overflow: hidden;
+  max-width: 900px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 32px 80px rgba(0,0,0,.7);
+}
+.modal-hd {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-ttl { font-size: 14px; font-weight: 600; color: var(--tx0); }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--panel3); border: 1px solid var(--line2);
+  color: var(--tx2); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.modal-close:hover { border-color: var(--red2); color: var(--red2); }
+.modal-video-wrap {
+  flex: 1;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 280px;
+  position: relative;
+}
+.modal-video {
+  max-width: 100%; max-height: 55vh;
+  width: 100%;
+  outline: none;
+}
+.modal-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.mm-item { background: var(--panel3); border-radius: 7px; padding: 9px 12px; }
+.mm-l { font-size: 9px; color: var(--tx3); letter-spacing: .5px; margin-bottom: 3px; }
+.mm-v { font-size: 12px; color: var(--tx0); font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+.modal-ft { padding: 14px 20px; display: flex; gap: 8px; }
+.mfb {
+  height: 36px; padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line2);
+  background: var(--panel2);
+  color: var(--tx2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 7px;
+}
+.mfb:hover { border-color: var(--accent2); color: var(--accent3); }
+.mfb.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+.mfb.primary:hover { background: var(--accent); }
+
+/* ═══════════════════════════ TOAST */
+.toast-box { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 6px; z-index: 9999; }
+.toast {
+  background: var(--panel2); border: 1px solid var(--line2);
+  border-radius: 9px; padding: 10px 14px;
+  font-size: 12px; display: flex; align-items: center; gap: 9px;
+  min-width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  animation: toastIn .18s ease;
+}
+@keyframes toastIn { from { transform: translateX(8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toast.ok { border-color: rgba(5,150,105,.35); } .toast.ok .t-ico { color: var(--green2); }
+.toast.err { border-color: rgba(220,38,38,.35); } .toast.err .t-ico { color: var(--red2); }
+.toast.inf { border-color: rgba(37,99,235,.35); } .toast.inf .t-ico { color: var(--accent3); }
+
+/* ═══════════════════════════ RESPONSIVE */
+@media (max-width: 1100px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .sidebar { width: 270px; } .grid-view { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ TOP NAV ══════════════════════════════════════════════════ -->
+  <nav class="topnav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div class="nav-brand">CCTV <span>Archive</span></div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-sub">Secure Video Retrieval</div>
+    <div class="nav-right">
+      <div class="nav-pill live">CloudFront CDN</div>
+      <div class="nav-pill" id="nav-region">us-east-1</div>
+      <div class="nav-pill" id="nav-env">S3 Connected</div>
+    </div>
+  </nav>
+
+  <div class="body">
+
+    <!-- ══ SIDEBAR ════════════════════════════════════════════════ -->
+    <aside class="sidebar">
+
+      <!-- Location & Camera -->
+      <div class="sb-section">
+        <div class="sb-head">
+          <div class="sb-title"><span class="sb-title-dot"></span>Location &amp; Camera</div>
+        </div>
+        <div class="sb-body">
+          <div class="field">
+            <div class="label">Location</div>
+            <select class="sel" id="sel-location" onchange="onLocationChange()">
+              <option value="">— Select Location —</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="label">Camera</div>
+            <select class="sel" id="sel-camera" disabled>
+              <option value="">— Select Camera —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date -->
+      <div class="sb-section">
+        <div class="sb-head">
+          <div class="sb-title"><span class="sb-title-dot" style="background:var(--teal)"></span>Date</div>
+        </div>
+        <div class="sb-body">
+          <div class="field">
+            <div class="label">Year &amp; Month</div>
+            <div class="row2">
+              <select class="sel" id="sel-year" onchange="onDateChange()">
+                <option value="">Year</option>
+              </select>
+              <select class="sel" id="sel-month" onchange="onDateChange()">
+                <option value="">Month</option>
+                <option value="01">January</option><option value="02">February</option>
+                <option value="03">March</option><option value="04">April</option>
+                <option value="05">May</option><option value="06">June</option>
+                <option value="07">July</option><option value="08">August</option>
+                <option value="09">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">Day</div>
+            <select class="sel" id="sel-day" onchange="onDateChange()">
+              <option value="">Select Day</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time Range -->
+      <div class="sb-section">
+        <div class="sb-head">
+          <div class="sb-title"><span class="sb-title-dot" style="background:var(--amber2)"></span>Time Range (Hour)</div>
+          <span style="font-size:10px;color:var(--tx3)">1-hour chunks</span>
+        </div>
+        <div class="sb-body">
+          <div class="field">
+            <div class="label">From → To</div>
+            <div class="row3">
+              <select class="sel" id="h-from" onchange="onHourChange()">
+                <option value="">From</option>
+              </select>
+              <div class="row-sep">→</div>
+              <select class="sel" id="h-to" onchange="onHourChange()">
+                <option value="">To</option>
+              </select>
+            </div>
+            <!-- Visual hour grid -->
+            <div class="hour-grid" id="hour-grid"></div>
+          </div>
+
+          <!-- Query preview -->
+          <div class="field">
+            <div class="label">S3 Path Preview</div>
+            <div class="q-preview" id="q-preview">
+              <span class="qi">Select location, camera, date and time range…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fetch -->
+      <div class="sb-section" style="border-bottom:none">
+        <div class="sb-body">
+          <div class="result-bar" id="result-bar">
+            <span>✓</span>
+            <span id="result-bar-txt">0 videos found</span>
+          </div>
+          <button class="fetch-btn" id="fetch-btn" onclick="doFetch()" disabled>
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Fetch Videos
+          </button>
+        </div>
+      </div>
+
+    </aside><!-- /sidebar -->
+
+    <!-- ══ CONTENT AREA ══════════════════════════════════════════ -->
+    <div class="content">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button class="tbtn on" id="tf-all" onclick="setTypeFilter('all')">All</button>
+          <button class="tbtn" id="tf-video" onclick="setTypeFilter('video')">
+            <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Video
+          </button>
+          <div class="view-toggle">
+            <button class="vt on" id="vt-grid" onclick="setView('grid')" title="Grid view">⊞</button>
+            <button class="vt" id="vt-list" onclick="setView('list')" title="List view">☰</button>
+          </div>
+          <div class="search-wrap">
+            <span class="search-ico">🔍</span>
+            <input type="text" class="search-inp" id="search-inp" placeholder="Search filename…" oninput="filterResults()" />
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <span style="font-size:11px;color:var(--tx3)" id="result-count">No data loaded</span>
+          <button class="tbtn" onclick="exportList()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export List
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-l">Videos Found</div><div class="stat-v" id="st-count">0</div><div class="stat-s">this query</div></div>
+        <div class="stat"><div class="stat-l">Total Duration</div><div class="stat-v" id="st-dur">—</div><div class="stat-s">hours of footage</div></div>
+        <div class="stat"><div class="stat-l">Total Size</div><div class="stat-v" id="st-size">—</div><div class="stat-s">estimated</div></div>
+        <div class="stat"><div class="stat-l">Time Span</div><div class="stat-v" id="st-span">—</div><div class="stat-s">hours queried</div></div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loading-state">
+        <div class="ls-spin"></div>
+        <div class="ls-txt" id="ls-txt">Fetching videos from S3…</div>
+        <div class="ls-sub" id="ls-sub">Querying DynamoDB index</div>
+        <div class="ls-pb"><div class="ls-pf" id="ls-pf"></div></div>
+      </div>
+
+      <!-- Video area -->
+      <div class="videos-wrap" id="videos-wrap">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-ico">🎥</div>
+          <div class="empty-ttl">No videos loaded</div>
+          <div class="empty-desc">Select a location, camera, date and hour range<br>from the sidebar, then click <strong>Fetch Videos</strong>.</div>
+        </div>
+
+        <!-- List header (hidden in grid mode) -->
+        <div class="list-hdr" id="list-hdr" style="display:none">
+          <span></span>
+          <span>Filename</span>
+          <span>Location</span>
+          <span>Camera</span>
+          <span>Size</span>
+          <span>Duration</span>
+          <span>Actions</span>
+        </div>
+
+        <div id="media-grid" class="grid-view"></div>
+      </div>
+
+      <!-- Selection bar -->
+      <div class="sel-bar" id="sel-bar">
+        <span class="sel-cnt" id="sel-cnt">0</span>
+        <span class="sel-info">videos selected</span>
+        <div class="sel-acts">
+          <button class="sab" onclick="copySignedUrls()">🔗 Copy Links</button>
+          <button class="sab primary" onclick="downloadSelected()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Selected
+          </button>
+          <button class="sab" onclick="clearSelection()">✕ Clear</button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /body -->
+</div><!-- /shell -->
+
+<!-- ══ VIDEO PLAYER MODAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-hd">
+      <div class="modal-ttl" id="modal-title">Video Preview</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-video-wrap">
+      <video class="modal-video" id="modal-video" controls preload="metadata">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <div class="modal-meta" id="modal-meta"></div>
+    <div class="modal-ft" id="modal-ft"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-box" id="toast-box"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
